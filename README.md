@@ -1,2 +1,2 @@
 # datasciencefoundation
-Sprinboard Data Science Foundation Class
+Springboard Data Science Foundation Class
