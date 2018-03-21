@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Forest Coverage Data
 
-For my capstone project I am using the Forest Coverage dataset found at
+For my capstone project I am using the Forest Coverage data set found at
 <https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/>. It is used to predict the type of tree or "Forest Coverage" in a 30 meter by 30 meter area of forest. The Forest Coverage predictor is used by the US Forest Service to "support the decision-making processes for developing ecosystem management strategies." 
 
-The data was originally used by Jock Blackard of the US Forest Service for his Ph.D. thesis and other papers. Jock found that neural networks were able to predict forest coverage with 70% accuracy. This was a 12% improvement over the Discriminant Analysis methods currently in use which had an accuracy of 58%. 
+The data was originally used by Jock Blackard of the US Forest Service for his PhD. thesis and other papers. Jock found that neural networks were able to predict forest coverage with 70% accuracy. This was a 12% improvement over the Discriminant Analysis methods currently in use which had an accuracy of 58%. 
 
 This project will use the concepts of linear regression and logistic regression learned in this class to see how they compare to the results obtained by Dr. Blackard. 
 
@@ -25,7 +25,7 @@ The forest coverage data consist of 581,012 rows and 54 columns including elevat
 The soil types are split into 40 columns with only one of the 40 columns having a value of '1' and all the other soil type columns having a value of '0'. Each column represents the unique intersection of soil features that could be mapped onto a shape within a multidimensional Venn Diagram.
 
 The dimensions of the Venn Diagram for soil type include:  
-* Climate Zone - 8 types, for example: montane, montane dry, sub apline, alpine, etc.  
+* Climate Zone - 8 types, for example: montane, montane dry, sub alpine, alpine, etc.  
 * Geologic zone - 8 types, for example: alluvium, glacial, shale, sandstone, etc.  
 * Soil Family - 49 types, for example: Vanet, Ratake, Bullwark, Gateview, Rogert, Leighcan, etc.  
 * Rock Density - 10 types, for example: rubbly, stony, very stony, rocky, very rocky, etc.  
@@ -34,14 +34,12 @@ The dimensions of the Venn Diagram for soil type include:
 
 In addition to exploring the data encoding used by Dr Blackard, I would like to break out the soil types into columns for the dimensions of the Venn Diagram. There would be eight climate zone columns with one climate zone selected per row and eight geologic zone columns with one geologic zone selected per row. 
 
-In the current encoding a soil type represents one or more soil families. The new encoding would allow mutiple soil familes to be marked per row. Simlarly, there can be multiple rock densities in a soil type and multiple rock densities could be selected per row.
+In the current encoding a soil type represents one or more soil families. The new encoding would allow multiple soil families to be marked per row. Similarly, there can be multiple rock densities in a soil type and multiple rock densities could be selected per row.
+
+For example, The description of soil type 33 is "Leighcan - Catamount families - Rock outcrop complex, extremely stony." The Leighcan soil family column and Catamount soil family column would be selected. The Rock outcrop complex column and the "extremely stony" column would be selected for the Rock Density dimension. 
 
 I am curious to see if the alternate data representation helps or hinders the ability to accurately predict the type of forest coverage.
 
 ## Deliverables
 
-<<<<<<< HEAD
-I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possible a lide deck.
-=======
-I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possible a lide deck.
->>>>>>> 748c98bf6746c325484535ab5a1fc5314e1ca3c5
+I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possibly a slide deck.
