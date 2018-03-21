@@ -1,5 +1,5 @@
 ---
-title: "Forest Coverage Project Description"
+title: "Data Science Foundation - Capstone Project Proposal"
 author: "Tom Thorpe"
 date: "March 20, 2018"
 output: html_document
@@ -9,22 +9,35 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Forest Coverage Data
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+For my capstone project I am using the Forest Coverage dataset found at
+<https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/>. It is used to predict the type of tree or "Forest Coverage" in a 30 meter by 30 meter area of forest. The Forest Coverage predictor is used by the US Forest Service to "support the decision-making processes for developing ecosystem management strategies." 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The data was originally used by Jock Blackard of the US Forest Service for his Ph.D. thesis and other papers. Jock found that neural networks were able to predict forest coverage with 70% accuracy. This was a 12% improvement over the Discriminant Analysis methods currently in use which had an accuracy of 58%. 
 
-```{r cars}
-summary(cars)
-```
+This project will use the concepts of linear regression and logistic regression learned in this class to see how they compare to the results obtained by Dr. Blackard. 
 
-## Including Plots
+## Data Description
 
-You can also embed plots, for example:
+The forest coverage data consist of 581,012 rows and 54 columns including elevation, aspect, slope, amount of shade at 9am, noon and 3pm, distance to water and roads, wilderness area, soil types and the type of tree found in the 30 meter by 30 meter sample. Only one of seven possible tree types is possible per row.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+The soil types are split into 40 columns with only one of the 40 columns having a value of '1' and all the other soil type columns having a value of '0'. Each column represents the unique intersection of soil features that could be mapped onto a shape within a multidimensional Venn Diagram.
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The dimensions of the Venn Diagram for soil type include:  
+* Climate Zone - 8 types, for example: montane, montane dry, sub apline, alpine, etc.  
+* Geologic zone - 8 types, for example: alluvium, glacial, shale, sandstone, etc.  
+* Soil Family - 49 types, for example: Vanet, Ratake, Bullwark, Gateview, Rogert, Leighcan, etc.  
+* Rock Density - 10 types, for example: rubbly, stony, very stony, rocky, very rocky, etc.  
+
+## Alternate Investigation
+
+In addition to exploring the data encoding used by Dr Blackard, I would like to break out the soil types into columns for the dimensions of the Venn Diagram. There would be eight climate zone columns with one climate zone selected per row and eight geologic zone columns with one geologic zone selected per row. 
+
+In the current encoding a soil type represents one or more soil families. The new encoding would allow mutiple soil familes to be marked per row. Simlarly, there can be multiple rock densities in a soil type and multiple rock densities could be selected per row.
+
+I am curious to see if the alternate data representation helps or hinders the ability to accurately predict the type of forest coverage.
+
+## Deliverables
+
+I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possible a lide deck.
