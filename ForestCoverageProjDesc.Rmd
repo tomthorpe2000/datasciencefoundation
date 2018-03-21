@@ -5,7 +5,7 @@ date: "March 20, 2018"
 output: html_document
 params:
   test:1
-  anotherparm:2
+  anotherparm:3
 ---
 
 ```{r setup, include=FALSE}
