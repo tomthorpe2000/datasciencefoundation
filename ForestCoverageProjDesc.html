@@ -128,8 +128,8 @@ $(document).ready(function () {
 
 <div id="forest-coverage-data" class="section level2">
 <h2>Forest Coverage Data</h2>
-<p>For my capstone project I am using the Forest Coverage dataset found at <a href="https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/" class="uri">https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/</a>. It is used to predict the type of tree or “Forest Coverage” in a 30 meter by 30 meter area of forest. The Forest Coverage predictor is used by the US Forest Service to “support the decision-making processes for developing ecosystem management strategies.”</p>
-<p>The data was originally used by Jock Blackard of the US Forest Service for his Ph.D. thesis and other papers. Jock found that neural networks were able to predict forest coverage with 70% accuracy. This was a 12% improvement over the Discriminant Analysis methods currently in use which had an accuracy of 58%.</p>
+<p>For my capstone project I am using the Forest Coverage data set found at <a href="https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/" class="uri">https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/</a>. It is used to predict the type of tree or “Forest Coverage” in a 30 meter by 30 meter area of forest. The Forest Coverage predictor is used by the US Forest Service to “support the decision-making processes for developing ecosystem management strategies.”</p>
+<p>The data was originally used by Jock Blackard of the US Forest Service for his PhD. thesis and other papers. Jock found that neural networks were able to predict forest coverage with 70% accuracy. This was a 12% improvement over the Discriminant Analysis methods currently in use which had an accuracy of 58%.</p>
 <p>This project will use the concepts of linear regression and logistic regression learned in this class to see how they compare to the results obtained by Dr. Blackard.</p>
 </div>
 <div id="data-description" class="section level2">
@@ -137,7 +137,7 @@ $(document).ready(function () {
 <p>The forest coverage data consist of 581,012 rows and 54 columns including elevation, aspect, slope, amount of shade at 9am, noon and 3pm, distance to water and roads, wilderness area, soil types and the type of tree found in the 30 meter by 30 meter sample. Only one of seven possible tree types is possible per row.</p>
 <p>The soil types are split into 40 columns with only one of the 40 columns having a value of ‘1’ and all the other soil type columns having a value of ‘0’. Each column represents the unique intersection of soil features that could be mapped onto a shape within a multidimensional Venn Diagram.</p>
 <p>The dimensions of the Venn Diagram for soil type include:<br />
-* Climate Zone - 8 types, for example: montane, montane dry, sub apline, alpine, etc.<br />
+* Climate Zone - 8 types, for example: montane, montane dry, sub alpine, alpine, etc.<br />
 * Geologic zone - 8 types, for example: alluvium, glacial, shale, sandstone, etc.<br />
 * Soil Family - 49 types, for example: Vanet, Ratake, Bullwark, Gateview, Rogert, Leighcan, etc.<br />
 * Rock Density - 10 types, for example: rubbly, stony, very stony, rocky, very rocky, etc.</p>
@@ -145,12 +145,13 @@ $(document).ready(function () {
 <div id="alternate-investigation" class="section level2">
 <h2>Alternate Investigation</h2>
 <p>In addition to exploring the data encoding used by Dr Blackard, I would like to break out the soil types into columns for the dimensions of the Venn Diagram. There would be eight climate zone columns with one climate zone selected per row and eight geologic zone columns with one geologic zone selected per row.</p>
-<p>In the current encoding a soil type represents one or more soil families. The new encoding would allow mutiple soil familes to be marked per row. Simlarly, there can be multiple rock densities in a soil type and multiple rock densities could be selected per row.</p>
+<p>In the current encoding a soil type represents one or more soil families. The new encoding would allow multiple soil families to be marked per row. Similarly, there can be multiple rock densities in a soil type and multiple rock densities could be selected per row.</p>
+<p>For example, The description of soil type 33 is “Leighcan - Catamount families - Rock outcrop complex, extremely stony.” The Leighcan soil family column and Catamount soil family column would be selected. The Rock outcrop complex column and the “extremely stony” column would be selected for the Rock Density dimension.</p>
 <p>I am curious to see if the alternate data representation helps or hinders the ability to accurately predict the type of forest coverage.</p>
 </div>
 <div id="deliverables" class="section level2">
 <h2>Deliverables</h2>
-<p>I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possibly a slide deck.</p>
+<p>For my project deliverables I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possibly a slide deck.</p>
 </div>
 
 
