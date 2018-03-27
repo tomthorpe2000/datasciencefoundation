@@ -45,4 +45,4 @@ I am curious to see if the alternate data representation helps or hinders the ab
 
 ## Deliverables
 
-For my project deliverables I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and possibly a slide deck.
+For my project deliverables I will provide code for the various techniques used to predict the forest coverage and a discussion of the results in a paper and a slide deck.
