@@ -1,0 +1,264 @@
+---
+title: "Capstone Data Wrangle 01"
+author: "Tom Thorpe"
+date: "March 28, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objective
+
+Initial data cleanup of capstone project forest coverage data set.
+
+Include required libraries.
+```{r}
+library(dplyr)
+```
+
+Point to data.
+```{r}
+#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover.csv"
+infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestsmall.csv"
+transformfile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/AlternateCoding01.csv"
+outfile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean.csv"
+```
+
+Load the data.
+```{r}
+forestcover <- read.csv(infile,header=TRUE,sep=",") %>% tbl_df()
+xform <- read.csv(transformfile,header=TRUE,sep=",") %>% tbl_df()
+```
+
+## Quick peek at the data
+```{r}
+glimpse(forestcover)
+forestcover
+#apply(forestcover,2,table)
+glimpse(xform)
+xform
+```
+## Expand Soil type
+The soil type needs to be expanded into columns that comprise the different components of each
+soil type. A particular soil type represents the climate zone, geologic zone, one or more
+soil families and one or more rock densities for a given sample/row.
+
+The xform data set drives the conversion of soil type to additional columns noted above. 
+Each row in the xform data set corresponds to one of
+the 40 possible soil types in the forest coverage data set.
+The first 3 columns identify the soil type number that corresponds to
+the soil type column in the forest coverage data set, a US Forest Service soil code and a description
+of the soil families and rock densities for the soil type. The remaining columns are the columns that
+will be added to the forest coverage data set and the values for each column.
+
+I created the xform data set to reflect what I think would be a good way to break out the soil type.
+I may want to change the way the data is broken out and therefore want later changes to 
+data encoding to be easier by using the xform data set to
+be the source of column names and values with minimum hard coding involved.
+
+The xform dataset is sorted by ST, the soil type column, so that it can be indexed by the soil type
+index that will be calculated in the forest coverage data set.
+```{r}
+xform<-arrange(xform,ST)
+xform
+```
+We want to add the same soil data column names in the xform data set to the forest coverage data set.
+Unfortunately I was not able to find a way to use a variable name to assign the name of the 
+new column when using the *mutate()* function. We can use the *colnames* function to change the
+column name after each mutate operation adds a column to the forest coverage data set.
+
+Create a new column to retain the soil type as a number.
+```{r}
+forestcover <- mutate(forestcover,soil_type = 0)
+glimpse(forestcover)
+```
+Start by getting the current forest coverage column names and an empty vector
+to collect the xform data set column names.
+```{r}
+xformcnames=c()
+forestcnames=colnames(forestcover)
+```
+
+Next iterate through the column names in the xform data set. The first three columns in the xform
+data set are not to be added to the coverage data set. These column names are skipped by
+checking for the column names as shown in the first *if* statement below. This is the only
+hard coding done and the only requirement of column names in the xform data set.
+
+For every other xform data set column, a column is added to the forest coverage data set.
+The xform column name is added to the xform data set column names and the forest service
+column names vectors. After the column is added to the forest coverage data set, 
+the forest service column names vector will be used to reset the new column name.
+The xform column name vector will be used later to index both the xform and forest
+coverage data sets when setting values in the forest coverage data set.
+```{r}
+startTime=Sys.time()
+print(paste("Column name creation started at",startTime))
+
+for(colname in colnames(xform)){
+  if (colname!="ST" & colname !="USFS_Code" & colname != "Description")
+  {
+    #print(colname)
+    forestcover <- mutate(forestcover,colname = 0) # add column named "colname" to forestcover
+    forestcnames<-c(forestcnames,colname)          # add the actual column name to forest colnames vector
+    colnames(forestcover) <- forestcnames          # set the forest cover column names
+    xformcnames=c(xformcnames,colname)             # add the column name to xform column names vector
+  }
+}
+endTime=Sys.time()
+print(paste("Column name creation completed at",endTime))
+print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
+print(xformcnames)
+glimpse(forestcover)
+```
+The new columns have been added to the forest coverage data set and 
+the column values need to be populated based on the values in the xform data set.
+
+First the column index of the first soil type in the forest coverage data set must found.
+The soil type columns are labeled "ST01", "ST02", ..., "ST40", all togther with 
+no other data columns between them. A non-zero value in one of the columns indicates
+the soil type. Finding the column index with the non zero value and subtracting
+the index of "ST01" gives the row index into the xform data set.
+The soil data from the corresponding soil type in the xform data set are then copied
+to the forest coverage data set.
+
+Find the location of the "ST01" column in the forest coverage data set. There are 40 soil
+types in the forest coverage data set, so the last column index is found by adding 39
+to the index of the "ST01" column.
+```{r}
+firstIndex<-grep("^ST01$", colnames(forestcover))
+lastIndex<-firstIndex+39
+print(paste("first=",firstIndex,", last=",lastIndex))
+```
+All the information needed to proceed with the data update is now ready.
+The code comments describe the details to update the forest coverage data set.
+```{r}
+startTime=Sys.time()
+print(paste("Starting forest coverage conversion at",startTime))
+errorCnt<- 0
+# go through every row in the forest coverage data set
+for(i in 1:nrow(forestcover)) {
+  # find Soil type in this row
+  soilIndex<-0    # this is the index variable that will be used to find the data in the xform data set
+  soilTypeCnt<-0  # error check var: There should be exactly 1 soil type in the forest cover data set
+
+  # check each "ST__" column in the forest coverage data set for a "1" indicating the soil type
+  for (j in firstIndex:lastIndex) { # the first and last indicies of the soil types were calculated above
+    if(forestcover[i,j]==1) {       # checking if a soil type was found. If "1", we have found one
+      soilIndex=j-firstIndex+1      # calculate the soil index to be used by the xform data set
+      soilTypeCnt<-soilTypeCnt+1    # count how many soil types we find. Should only be one
+    }
+  }
+
+  # do some error checking to be sure there are no errors in the forest coverage data set
+  if(soilIndex==0) {      
+    print(paste("Soil type mising in row",i))
+    errorCnt <- errorCnt + 1
+  }
+  if(soilTypeCnt > 1) {
+    print(paste("Too many soil types in row",i))
+    errorCnt <- errorCnt + 1
+  }
+  #print(paste("row:",i,"Elev=",forestcover[i,1]))
+  
+  if(soilIndex > 0){
+    forestcover[i,"soil_type"] <- soilIndex # save the original soil type code
+  
+    # copy the soil type data from the xform data set to the forest coverage data set
+    for (colname in xformcnames) {                          # use xform column names for indexing
+      if (!is.na(xform[soilIndex,colname])) {               # don't copy NA values
+        forestcover[i,colname] <- xform[soilIndex,colname]
+        # current forest cover row get the soil data from the xform data set
+      }
+    }
+  }
+}
+endTime=Sys.time()
+print(paste("Forest coverage conversion completed at",endTime))
+print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
+print(paste(errorCnt,"errors were found."))
+glimpse(forestcover)
+```
+## Data Scaling
+Some scaling of the data may be required but is unknown at this time, so only a note
+is made here to remember to update this section as needed.
+
+## Expand CovType variable into binary columns.
+Create the column names.
+```{r}
+forestcover <- mutate(forestcover,Tree.Spruce.Fir=0)
+forestcover <- mutate(forestcover,Tree.LodgepolePine=0)
+forestcover <- mutate(forestcover,Tree.PonderosaPine=0)
+forestcover <- mutate(forestcover,Tree.Cottonwood.Willow=0)
+forestcover <- mutate(forestcover,Tree.Aspen=0)
+forestcover <- mutate(forestcover,Tree.DouglasFir=0)
+forestcover <- mutate(forestcover,Tree.Krummholz=0)
+```
+Populate the columns.
+```{r}
+forestcover$Tree.Spruce.Fir[forestcover$CovType == 1] <- 1
+forestcover$Tree.LodgepolePine[forestcover$CovType == 2] <- 1
+forestcover$Tree.PonderosaPine[forestcover$CovType == 3] <- 1
+forestcover$Tree.Cottonwood.Willow[forestcover$CovType == 4] <- 1
+forestcover$Tree.Aspen[forestcover$CovType == 5] <- 1
+forestcover$Tree.DouglasFir[forestcover$CovType == 6] <- 1
+forestcover$Tree.Krummholz[forestcover$CovType == 7] <- 1
+glimpse(forestcover)
+table(forestcover$CovType)
+table(forestcover$Tree.Spruce.Fir)
+table(forestcover$Tree.LodgepolePine)
+table(forestcover$Tree.PonderosaPine)
+table(forestcover$Tree.Cottonwood.Willow)
+table(forestcover$Tree.Aspen)
+table(forestcover$Tree.DouglasFir)
+table(forestcover$Tree.Krummholz)
+```
+## Remove Unneeded columns
+The binary soil type columns are no longer needed and are removed.
+```{r}
+startTime=Sys.time()
+print(paste("Forest coverage column deletion started at",startTime))
+forestcover <- forestcover %>% select(-ST01,-ST02,-ST03,-ST04,-ST05,-ST06,-ST07,-ST08,-ST09,-ST10,
+                                      -ST11,-ST12,-ST13,-ST14,-ST15,-ST16,-ST17,-ST18,-ST19,-ST20,
+                                      -ST21,-ST22,-ST23,-ST24,-ST25,-ST26,-ST27,-ST28,-ST29,-ST30,
+                                      -ST31,-ST32,-ST33,-ST34,-ST35,-ST36,-ST37,-ST38,-ST39,-ST40
+                                      )
+endTime=Sys.time()
+print(paste("Forest coverage column deletion completed at",endTime))
+print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
+glimpse(forestcover)
+```
+Save the cleaned data in a CSV file.
+```{r}
+write.csv(forestcover, file=outfile,row.names=FALSE)
+```
+## Data distributions
+Now check some data distributions.
+```{r}
+#apply(xform,2,table)
+test=TRUE
+if(test) {
+  startTime=Sys.time()
+  print(paste("Plot creation started at",startTime))
+  
+  plot(table(forestcover$Elev.m))
+  plot(table(forestcover$Aspect.deg))
+  plot(table(forestcover$Slope.deg))
+  plot(table(forestcover$H2O_HD.m))
+  plot(table(forestcover$H2O_VD.m))
+  plot(table(forestcover$Road_HD.m))
+  plot(table(forestcover$Shade_9AM.255))
+  plot(table(forestcover$Shade_12PM.255))
+  plot(table(forestcover$Shade_3PM.255))
+  plot(table(forestcover$FirePt_HD.m))
+  
+  endTime=Sys.time()
+  print(paste("Plots completed at",endTime))
+  print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
+
+}
+```
+That concludes the current data wrangling exercise on my capstone data.

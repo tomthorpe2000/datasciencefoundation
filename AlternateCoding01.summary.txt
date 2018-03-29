@@ -1,0 +1,120 @@
+ 36 8707 Bross family - Rock land - Cryumbrepts complex- extremely stony.
+         Bross Cryumbrepts_cmplx Rock_Land Stony_extreme
+
+ 11 4704 Bullwark - Catamount families - Rock land complex rubbly.
+         Bullwark Catamount Rock_Land_cmplx Rubbly
+
+ 10 4703 Bullwark - Catamount families - Rock outcrop complex rubbly.
+         Bullwark Catamount Rock_Outcrop_cmplx Rubbly
+
+ 13 4758 Catamount family - Rock land - Bullwark family complex rubbly.
+         Bullwark_Cmplx Catamount Rock_Land Rubbly
+
+ 32 7756 Catamount family - Rock outcrop - Leighcan family complex extremely stony.
+         Catamount Leighcan_cmplx Rock_Outcrop Stony_extreme
+
+ 1 2702 Cathedral family - Rock outcrop complex extremely stony.
+         Cathedral Rock_Outcrop_cmplx Stony_extreme
+
+ 29 7745 Como - Legault families complex extremely stony.
+         Como Legault_cmplx Stony_extreme
+
+ 30 7746 Como family - Rock land - Legault family complex extremely stony.
+         Como Legault_cmplx Rock_Land Stony_extreme
+
+ 16 6101 Cryaquolls - Cryoborolis complex.
+         Cryaquolls Cryoborolis_cmplx
+
+ 34 7790 Cryorthents - Rock land complex extremely stony.
+         Cryorthents Rock_Land_cmplx Stony_extreme
+
+ 35 8703 Cryumbrepts - Rock outcrop - Cryaquepts complex.
+         Cryaquepts_cmplx Cryumbrepts Rock_Outcrop
+
+ 17 6102 Gateview family – Cryaquolls complex.
+         Cryaquolls_cmplx Gateview
+
+ 7 3501 Gothic family.
+         Gothic
+
+ 26 7702 Granile - Catamount families complex very stony.
+         Catamount_cmplx Granile Stony_very
+
+ 3 2704 Haploborolis - Rock outcrop complex rubbly.
+         Haploborolis Rock_Outcrop_cmplx Rubbly
+
+ 12 4744 Legault family - Rock land complex stony.
+         Legault Rock_Land_cmplx Stony
+
+ 33 7757 Leighcan - Catamount families - Rock outcrop complex extremely stony.
+         Catamount Leighcan Rock_Outcrop_cmplx Stony_extreme
+
+ 31 7755 Leighcan - Catamount families complex extremely stony.
+         Catamount_cmplx Leighcan Stony_extreme
+
+ 38 8771 Leighcan - Moran families - Cryaquolls complex extremely stony.
+         Cryaquolls_cmplx Leighcan Moran Stony_extreme
+
+ 28 7710 Leighcan family - Rock outcrop complex extremely stony.
+         Leighcan Rock_Outcrop_cmplx Stony_extreme
+
+ 24 7700 Leighcan family extremely stony.
+         Leighcan Stony_extreme
+
+ 23 7202 Leighcan family till substratum - Typic Cryaquolls complex.
+         Cryaquolls_Typic_cmplx Leighcan Till_Substratum
+
+ 22 7201 Leighcan family till substratum extremely bouldery.
+         Leighcan Bouldery_ext Till_Substratum
+
+ 27 7709 Leighcan family warm - Rock outcrop complex extremely stony.
+         Leighcan_warm Rock_Outcrop_cmplx Stony_extreme
+
+ 25 7701 Leighcan family warm extremely stony.
+         Leighcan_warm Stony_extreme
+
+ 39 8772 Moran family - Cryorthents - Leighcan family complex extremely stony.
+         Cryorthents Leighcan_cmplx Moran Stony_extreme
+
+ 40 8776 Moran family - Cryorthents - Rock land complex extremely stony.
+         Cryorthents Moran Rock_Land_cmplx Stony_extreme
+
+ 14 5101 Pachic Argiborolis - Aquolis complex.
+         Aquolis_cmplx Argiborolis_Pachic
+
+ 4 2705 Ratake family - Rock outcrop complex rubbly.
+         Ratake Rock_Outcrop_cmplx Rubbly
+
+ 37 8708 Rock outcrop - Cryumbrepts - Cryorthents complex extremely stony.
+         Cryorthents_cmplx Cryumbrepts Rock_Outcrop Stony_extreme
+
+ 18 6731 Rogert family very stony.
+         Rogert Stony_very
+
+ 8 3502 Supervisor - Limber families complex.
+         Supervisor_Limber_cmplx
+
+ 9 4201 Troutville family very stony.
+         Troutville Stony_very
+
+ 20 7102 Typic Cryaquepts - Typic Cryaquolls complex.
+         Cryaquepts_Typic Cryaquolls_Typic_cmplx
+
+ 19 7101 Typic Cryaquolls - Borohemists complex.
+         Borohemists_cmplx Cryaquolls_Typic
+
+ 21 7103 Typic Cryaquolls - Leighcan family till substratum complex.
+         Cryaquolls_Typic Leighcan Till_Substratum
+
+ 15 5151 unspecified in the USFS Soil and ELU Survey.
+         Unspecified
+
+ 2 2703 Vanet - Ratake families complex very stony.
+         Ratake_cmplx Vanet Stony_very
+
+ 6 2717 Vanet - Wetmore families - Rock outcrop complex stony.
+         Vanet Wetmore Rock_Outcrop_cmplx Stony
+
+ 5 2706 Vanet family - Rock outcrop complex complex rubbly.
+         Vanet Rock_Outcrop_cmplx Rubbly
+
