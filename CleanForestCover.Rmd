@@ -16,20 +16,22 @@ knitr::opts_chunk$set(echo = TRUE)
 Initial data cleanup of capstone project forest coverage data set.
 
 Include required libraries.
-```{r}
+```{r loadLibraries}
 library(dplyr)
+#library(knitr)
 ```
 
 Point to data.
 ```{r}
-#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover.csv"
-infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestsmall.csv"
+infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover.csv"
+#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestsmall.csv"
 transformfile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/AlternateCoding01.csv"
-outfile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean.csv"
+out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full.csv"
+out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean.csv"
 ```
 
 Load the data.
-```{r}
+```{r readData}
 forestcover <- read.csv(infile,header=TRUE,sep=",") %>% tbl_df()
 xform <- read.csv(transformfile,header=TRUE,sep=",") %>% tbl_df()
 ```
@@ -62,7 +64,7 @@ be the source of column names and values with minimum hard coding involved.
 
 The xform dataset is sorted by ST, the soil type column, so that it can be indexed by the soil type
 index that will be calculated in the forest coverage data set.
-```{r}
+```{r sortTransform}
 xform<-arrange(xform,ST)
 xform
 ```
@@ -94,7 +96,7 @@ column names vectors. After the column is added to the forest coverage data set,
 the forest service column names vector will be used to reset the new column name.
 The xform column name vector will be used later to index both the xform and forest
 coverage data sets when setting values in the forest coverage data set.
-```{r}
+```{r CreateColumns}
 startTime=Sys.time()
 print(paste("Column name creation started at",startTime))
 
@@ -135,12 +137,17 @@ print(paste("first=",firstIndex,", last=",lastIndex))
 ```
 All the information needed to proceed with the data update is now ready.
 The code comments describe the details to update the forest coverage data set.
-```{r}
+```{r PopulateSoilInfo}
+
 startTime=Sys.time()
 print(paste("Starting forest coverage conversion at",startTime))
 errorCnt<- 0
+totalCnt<-0
+reportCnt<-0
 # go through every row in the forest coverage data set
 for(i in 1:nrow(forestcover)) {
+  reportCnt<- reportCnt + 1
+  totalCnt <- totalCnt+1
   # find Soil type in this row
   soilIndex<-0    # this is the index variable that will be used to find the data in the xform data set
   soilTypeCnt<-0  # error check var: There should be exactly 1 soil type in the forest cover data set
@@ -175,10 +182,17 @@ for(i in 1:nrow(forestcover)) {
       }
     }
   }
+  
+  if (reportCnt > 49999) {
+    curTime <- Sys.time()
+    print(paste(totalCnt," rows processed at",curTime,", elapsed time",round(curTime-startTime),"secs"))
+    reportCnt <- 0
+  }
 }
 endTime=Sys.time()
 print(paste("Forest coverage conversion completed at",endTime))
 print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
+print(paste("Total rows processed:",totalCnt))
 print(paste(errorCnt,"errors were found."))
 glimpse(forestcover)
 ```
@@ -198,7 +212,7 @@ forestcover <- mutate(forestcover,Tree.DouglasFir=0)
 forestcover <- mutate(forestcover,Tree.Krummholz=0)
 ```
 Populate the columns.
-```{r}
+```{r PopulateTreeNames}
 forestcover$Tree.Spruce.Fir[forestcover$CovType == 1] <- 1
 forestcover$Tree.LodgepolePine[forestcover$CovType == 2] <- 1
 forestcover$Tree.PonderosaPine[forestcover$CovType == 3] <- 1
@@ -218,7 +232,10 @@ table(forestcover$Tree.Krummholz)
 ```
 ## Remove Unneeded columns
 The binary soil type columns are no longer needed and are removed.
-```{r}
+Save the cleaned data before removing columns in a CSV file.
+```{r RemoveSTnnColumns}
+write.csv(forestcover, file=out1file,row.names=FALSE)
+
 startTime=Sys.time()
 print(paste("Forest coverage column deletion started at",startTime))
 forestcover <- forestcover %>% select(-ST01,-ST02,-ST03,-ST04,-ST05,-ST06,-ST07,-ST08,-ST09,-ST10,
@@ -232,13 +249,12 @@ print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
 glimpse(forestcover)
 ```
 Save the cleaned data in a CSV file.
-```{r}
-write.csv(forestcover, file=outfile,row.names=FALSE)
+```{r saveData}
+write.csv(forestcover, file=out2file,row.names=FALSE)
 ```
 ## Data distributions
 Now check some data distributions.
-```{r}
-#apply(xform,2,table)
+```{r CreatePlots}
 test=TRUE
 if(test) {
   startTime=Sys.time()
