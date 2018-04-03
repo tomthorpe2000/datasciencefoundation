@@ -76,7 +76,7 @@ using column selects and updates.
 The full report of the data conversion is located here <https://github.com/tomthorpe2000/datasciencefoundation/blob/master/CleanForestCover.pdf> .
 
 The full 5810012 row forest cover data set was too big to be loaded to Github. 
-A Sample of the first 500 rows can be seen here <https://github.com/tomthorpe2000/datasciencefoundation/blob/master/forestcoversmall.csv> .
+A Sample of the first 500 rows can be seen here <https://github.com/tomthorpe2000/datasciencefoundation/blob/master/forestsmall.csv> .
 
 And the cleand data data for the 500 rows can be found here <https://github.com/tomthorpe2000/datasciencefoundation/blob/master/forestcoversmall_clean.csv> .
 
