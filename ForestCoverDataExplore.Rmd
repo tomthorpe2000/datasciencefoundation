@@ -1,0 +1,775 @@
+---
+title: "Capstone Data Exploration"
+author: "Tom Thorpe"
+date: "April 17, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objective
+
+View different plots of the cleaned Forest Cover data from the previous section to 
+learn more about the data.
+
+Include required libraries.
+```{r}
+progStart=Sys.time()
+print(paste("R script started at",progStart))
+
+library(dplyr)
+library(ggplot2)
+
+```
+
+Point to data. The forestcover_clean_full.csv is the cleaned data to be graphed. 
+
+```{r}
+
+infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full2.csv"
+#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full_sample2.csv"
+out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_graph.csv"
+#out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean_full.csv"
+#out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean.csv"
+
+alphaVal<-0.01 # large data
+alphaVal<-0.1  # small data
+```
+
+Load the data.
+```{r "Load Data"}
+startTime=Sys.time()
+print(paste("Data load started at",startTime))
+forestcover <- read.csv(infile,header=TRUE,sep=",") %>% tbl_df()
+
+# Shorten some names
+forestcover$ClimateName <- as.character(forestcover$ClimateName)
+forestcover$ClimateName[forestcover$ClimateZone == 1] <- "MonLowDry" # was "Mont_LowDry"
+forestcover$ClimateName[forestcover$ClimateZone == 2] <- "MonLow" # was "Montane_Low"
+forestcover$ClimateName[forestcover$ClimateZone == 3] <- "MonDry" # was "Montane_Dry"
+forestcover$ClimateName[forestcover$ClimateZone == 4] <- "Montane" # was "Montane"
+forestcover$ClimateName[forestcover$ClimateZone == 5] <- "M&MDry" # was "Mon&Mon_Dry"
+forestcover$ClimateName[forestcover$ClimateZone == 6] <- "MonSubAlp" # was "Mon_SubAlp"
+forestcover$ClimateName[forestcover$ClimateZone == 7] <- "SubAlpine" # was "SubAlpine"
+forestcover$ClimateName[forestcover$ClimateZone == 8] <- "Alpine" # was "Alpine"  
+forestcover$ClimateName <- as.factor(forestcover$ClimateName)
+
+endTime=Sys.time()
+  print(paste("Data load completed at",endTime))
+  print(paste("Elapsed time=",endTime-startTime,"seconds."))
+```
+
+## Data Overview
+The forest cover data has a row for each sample representing a 30 meter by 30 meter square area
+of land. Each cell sample is described by elevation, slope and direction the cell faces,
+distance to water, roads, and fire and binary columns for wilderness area and soil type.
+One of 4 possible wilderness areas and one of 40 possible aggregated soil types are
+set in each row. The predicted variable is the coverage type indicating 1 of 7 possible
+trees found in the cell sample.
+
+The data is described in detail here: 
+<https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/covtype.info>.
+The data names have been abbreviated but can be related to the data descriptions easily.
+
+```{r}
+glimpse(forestcover)
+```
+
+## List Data Ranges for Non-Binary Data
+List Data Ranges for Non-Binary Data.
+```{r}
+myranges <- function(name,x) { c(name, min = min(x), mean = mean(x), max = max(x)) }
+
+forestDataRanges <- data.frame("Data"=character(), "min"=double(), "mean"=double(), "max"=double(),
+                               stringsAsFactors=FALSE)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Elev",forestcover$Elev)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Aspect",forestcover$Aspect)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Slope",forestcover$Slope)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("H2OHD",forestcover$H2OHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("H2OVD",forestcover$H2OVD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("RoadHD",forestcover$RoadHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("FirePtHD",forestcover$FirePtHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade9AM",forestcover$Shade9AM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade12P",forestcover$Shade12PM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade3PM",forestcover$Shade3PM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("RWwild",forestcover$RWwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("NEwild",forestcover$NEwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("CMwild",forestcover$CMwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("CPwild",forestcover$CPwild)
+forestDataRanges
+
+```
+
+The results show all the data values have reasonable values and there is no missing data. 
+The elevation ranges from 1859 meters (6099 feet) to 3858 meters (12657 feet). These are valid ranges for elevation in the Colorado wilderness 
+areas being sampled, but the rule of thumb for timberline (the maximum elevation for where trees
+are found) is 11500 feet. It might be interesting to see how accurate predictions are if
+samples above 11800 feet are removed.
+
+The Aspect which is the compass heading that the terrain faces, ranges from 0 to 360 degrees and is a valid data range. The Slope is the steepness of the terrain with 0 degrees being flat and 90 degrees being vertical. The maximum Slope was found to be 66 degrees which seems logical since trees are not
+usually seen on near-vertical cliffs. (It's a different story in New Zealand!)
+
+The horizontal distance to the nearest water features, range from 0 to 1397 meters which seems reasonable. The vertical distance to nearest water features, range from -173 to 601 meters which seems reasonable and
+can be negative since the nearest water may be below the forest cover data sample.
+
+The horizontal distance to the nearest road ranges from 0 to 7117 meters which is reasonable.
+The horizontal distance to the nearest fire features range from 0 to 7173 meters which is reasonable.
+The amount of shade present in a cell sample at 9AM, 12PM and 3PM ranges from 0 (full sun) to 254
+(fully shaded). 
+```{r}
+
+##print(paste("Forest coverage ST__ column deletion started at",startTime))
+#forestcover <- forestcover %>% select(-ST01,-ST02,-ST03,-ST04,-ST05,-ST06,-ST07,-ST08,-ST09,-ST10,
+#                                      -ST11,-ST12,-ST13,-ST14,-ST15,-ST16,-ST17,-ST18,-ST19,-ST20,
+#                                      -ST21,-ST22,-ST23,-ST24,-ST25,-ST26,-ST27,-ST28,-ST29,-ST30,
+#                                      -ST31,-ST32,-ST33,-ST34,-ST35,-ST36,-ST37,-ST38,-ST39,-ST40,
+#                                      -STsum, -Wildsum
+#                                      )
+
+#forestcover <- mutate(forestcover,CovName = "")
+#forestcover$CovName[forestcover$CovType == 1] <- "Spruce&Fir"
+#forestcover$CovName[forestcover$CovType == 2] <- "Lodgepole"
+#forestcover$CovName[forestcover$CovType == 3] <- "Ponderosa"
+#forestcover$CovName[forestcover$CovType == 4] <- "Cotton&Willow"
+#forestcover$CovName[forestcover$CovType == 5] <- "Aspen"
+#forestcover$CovName[forestcover$CovType == 6] <- "DouglasFir"
+#forestcover$CovName[forestcover$CovType == 7] <- "Krummholz"
+
+#forestcover <- mutate(forestcover,Climate = "")
+#forestcover$Climate[forestcover$Montane_low == 1 & forestcover$Non_Dry ==1] <- "1Montane_Low_NonDry"
+#forestcover$Climate[forestcover$Montane == 1] <- "2Montane"
+#forestcover$Climate[forestcover$Subalpine == 1] <- "3SubAlpine"
+#forestcover$Climate[forestcover$Alpine == 1] <- "4Alpine"
+
+#forestcover <- mutate(forestcover,Wilderness_Area = "")
+#forestcover$Wilderness_Area[forestcover$RWwild == 1] <- "Rawah"
+#forestcover$Wilderness_Area[forestcover$NEwild == 1] <- "Neota"
+#forestcover$Wilderness_Area[forestcover$CMwild == 1] <- "Comanche"
+#forestcover$Wilderness_Area[forestcover$CPwild == 1] <- "Cache"
+#forestcover$Wilderness_Area <- as.factor(forestcover$Wilderness_Area)
+
+```
+
+\newpage
+
+## Data distributions 
+Now check some basic distributions.
+
+### Elevation Histogram - Figure 1
+```{r "Start Plots"}
+startTime=Sys.time()
+  print(paste("Plot creation started at",startTime))
+
+# Figure 1
+  jpeg(filename="Figure01.jpg")
+  plot(table(forestcover$Elev))
+  dev.off()
+```  
+
+![Elevation Histogram](Figure01.jpg)
+
+The elevation histogram looks reasonable for Colorado high country.
+
+\newpage
+
+### Terrain Aspect - Figure 2
+```{r "Figure 2"}  
+# Figure 2
+  jpeg(filename="Figure02.jpg")
+  plot(table(forestcover$Aspect))
+  dev.off()
+```  
+
+![Terrain Aspect Histogram](Figure02.jpg)
+
+The aspect, the direction the terrain is facing, forms an interesting sine wave with the most terrain facing 45 degrees or North East and the least amount of terrain facing 230 degrees or South West. 
+There are spikes in the graph that look like anomalies due to the size of the bin used by the histogram. 
+There are dips in the bins next to the spikes.
+
+\newpage
+
+### Terrain Slope - Figure 3
+```{r "Figure 3"}  
+# Figure 3
+
+  jpeg(filename="Figure03.jpg")
+  plot(table(forestcover$Slope))
+  dev.off()
+```  
+
+![Terrain Slope Histogram](Figure03.jpg)
+
+The slope distribution seems reasonable and smooth with most of the trees on slopes of 3 degrees
+to 30 degrees and very few trees on slopes greater than 40 degrees.
+
+\newpage
+
+### Horizontal Distance to Water - Figure 4
+```{r "Figure 4"}  
+# Figure 4
+  jpeg(filename="Figure04.jpg")
+  plot(table(forestcover$H2OHD))
+  dev.off()
+```  
+
+![Horizontal Distance to Water Features Histogram](Figure04.jpg)
+
+
+The horizontal distance to water features seems reasonable. Most of the trees are fairly close
+to water which shows trees thrive close to water.
+
+\newpage
+
+### Vertical Distance to Water - Figure 5
+```{r "Figure 5"}  
+# Figure 5
+  jpeg(filename="Figure05.jpg")
+  plot(table(forestcover$H2OVD))
+  dev.off()
+```  
+
+![Vertical Distance to Water Features Histogram](Figure05.jpg)
+
+The vertical distance to the nearest water also seems reasonable with the majority of trees
+having water from above within 5 to 150 meters. For some trees the nearest water is below within
+about 40 meters.
+
+\newpage
+
+### Horzontal Distance to Roads - Figure 6
+```{r "Figure 6"}  
+# Figure 6
+  jpeg(filename="Figure06.jpg")
+  plot(table(forestcover$RoadHD))
+  dev.off()
+```  
+
+![Horizontal Distance to Water Features Histogram](Figure06.jpg)
+
+The nearest roads are closer than I would have expected for wilderness areas. Most of the
+trees are within 1700 meters or about a mile of a road.
+
+\newpage
+
+### Shade at 9am - Figure 7
+```{r "Figure 7"}  
+# Figure 7
+  jpeg(filename="Figure07.jpg")
+  plot(table(forestcover$Shade9AM))
+  dev.off()
+```  
+
+![Shade at 9AM Histogram](Figure07.jpg)
+ 
+
+The shade value is fairly high at 9am with most area having between 80% shade (207/254) and 90% shade
+(238/254).
+
+\newpage
+
+### Shade at 12pm - Figure 8
+```{r "Figure 8"}  
+# Figure 8
+  jpeg(filename="Figure08.jpg")
+  plot(table(forestcover$Shade12PM))
+  dev.off()
+```  
+
+![Shade at 12PM Histogram](Figure08.jpg)
+
+There is even more shade at noon with most areas having between 82% (210/254) and
+100% shade (252/254).
+
+\newpage
+
+### Shade at 3pm - Figure 9
+```{r "Figure 9"}  
+# Figure 9
+  jpeg(filename="Figure09.jpg")
+  plot(table(forestcover$Shade3PM))
+  dev.off()
+```  
+
+![Shade at 3PM Histogram](Figure09.jpg)
+
+There is more sun (less shade) at 3pm with most cells having between 37% (94/254)
+and 77% (196/254) shade.
+
+\newpage
+
+### Horzontal Distance to Fire Points - Figure 10
+```{r "Figure 10"}  
+# Figure 10
+  jpeg(filename="Figure10.jpg")
+  plot(table(forestcover$FirePtHD))
+  dev.off()
+```  
+
+![Horizontal Distance to Fire Points Histogram](Figure10.jpg)
+
+
+The distance from fire occurrence is similar to the distance to roads graph. 
+While there is correlation. It is not possible to determine causation. 
+
+\newpage
+
+### Tree Type vs Elevation - Figure 11
+```{r "Figure 11"}
+# Figure 11
+  g <- ggplot(forestcover,aes(Elev, CovName,col=CovType)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure11.jpg")
+```  
+
+![Tree Type vs Elevation](Figure11.jpg)
+
+
+Elevation vs Tree Type shows that trees reside in a range of elevations and
+will help in determining tree type, but more information will be needed where 
+there is overlap in elevation. 
+
+This graph looks a little strange. The next graph reverses the axes.
+
+\newpage
+
+### Elevation vs Tree Type - Figure 12
+```{r "Figure 12"}
+# Figure 12
+  g <- ggplot(forestcover,aes(CovName,Elev,col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure12.jpg")
+```  
+
+![Figure 12](Figure12.jpg)
+
+This graph is more pleasant to my eyes, though I can't say exactly why.
+There is an unusual gap in the Krummholz between 3000 and 3125 meters. I wonder if this might be
+due to the different Wilderness areas.
+
+\newpage
+
+### Elevations vs Tree Type and Wilderness Area - Figure 13
+```{r "Figure 13"}  
+# Figure 13
+  g <- ggplot(forestcover,aes(CovName,Elev,col=CovName)) +
+        geom_jitter(alpha=alphaVal) +
+    facet_grid(. ~ Wilderness_Area)
+  ggsave("Figure13.jpg")
+```  
+
+![Elevations vs Tree Type and Wilderness Area](Figure13.jpg)
+
+The interesting elevation gap in Krummholz tree occurs in the Comanche wilderness area.
+But we see there are two gaps and must be due to some areas of terrain that vary
+significantly in the Comanche wilderness area. I was expecting that the Krummholz tree type
+should have been continuous in each wilderness area and the gap would be explained
+by different elevation ranges in different wilderness areas. This plot also shows
+that there are 1 to 4 types of trees missing in each wilderness area.
+
+\newpage
+
+### Slope vs Tree Type - Figure 14
+```{r "Figure 14"}
+# Figure 14
+g <- ggplot(forestcover,aes(CovName,Slope)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure14.jpg")
+```  
+
+![Slope vs Tree Type](Figure14.jpg)
+
+The distribution of tree type by slope appears to be pretty evenly distributed
+and the distribution is close to the same for each tree type. It doesn't look 
+like slope will be a major factor to help determine the tree type.
+
+\newpage
+
+### Slope vs Elev and Tree Type - Figure 15
+```{r "Figure 15"}
+# Figure 15
+  g <- ggplot(forestcover,aes(Slope,Elev,col=CovName)) +
+      geom_jitter(alpha=alphaVal)
+  ggsave("Figure15.jpg")
+```  
+
+![Slope vs Elev and Tree Type](Figure15.jpg)
+
+It is hard to interpret this graph. There is a scattering of trees continuously over the
+range of the slope and elevation.
+
+\newpage
+
+### Elevation vs Slope and Tree Type - Figure 16
+```{r "Figure 16"}
+# Figure 16
+library(RColorBrewer)
+  myColors1 <- c(brewer.pal(7, "Dark2"), "black")
+  
+  g <- ggplot(forestcover,aes(Slope,Elev,col=CovName)) +
+       geom_jitter(alpha=alphaVal) +
+       stat_smooth(method = "lm", se = F) +
+       facet_grid(. ~ CovName) +
+       scale_color_manual("Tree Cover",values=myColors1) +
+       labs(x = "Slope Angle (degrees)",
+            y = "Elevation (m)")
+  ggsave("Figure16.jpg")
+```  
+
+![Elevation vs Slope and Tree Type](Figure16.jpg)
+
+This graph replicates graph 12, so, no new info here. Adding the smooth line mainly helps to see the color of the legend when the alpha value is so low.
+
+\newpage
+
+### Elevation vs Terrain Aspect - Figure 17
+```{r "Figure 17"}
+# Figure 17
+myColors1 <- c(brewer.pal(7, "Dark2"), "black")
+  g <- ggplot(forestcover,aes(Aspect,Elev,col=CovName)) +
+       geom_jitter(alpha=alphaVal) +
+       stat_smooth(method = "lm", se = F) +
+#       facet_grid(. ~ CovName) +
+       scale_color_manual("Tree Cover",values=myColors1) +
+       labs(x = "Aspect Direction (degrees)",
+            y = "Elevation (m)")
+  ggsave("Figure17.jpg")
+```  
+\newpage
+![Elevation vs Terrain Aspect](Figure17.jpg)
+
+The elevation vs aspect shows that, like slope, tree type is not related much to Aspect.
+
+\newpage
+
+### Elevation vs Terrain Aspect by Tree Type - Figure 18
+```{r "Figure 18"}
+# Figure 18
+  g <- ggplot(forestcover,aes(Aspect,Elev,col=CovName)) +
+       geom_jitter(alpha=alphaVal) +
+       stat_smooth(method = "lm", se = F) +
+       facet_grid(. ~ CovName) +
+       scale_color_manual("Tree Cover",values=myColors1) +
+       labs(x = "Aspect Direction (degrees)",
+            y = "Elevation (m)")
+  ggsave("Figure18.jpg")
+```  
+
+![Elevation vs Terrain Aspect by Tree Type](Figure18.jpg)
+
+Another view of elevation vs aspect shows there are concentrations of tree types near 0 and 360 degrees.
+This occurs for all tree types and shows again that aspect is not going to help very much.
+
+\newpage
+
+### Tree Type vs Soil Types 1 thru 10 - Figure 19  
+```{r "Figure 19"}
+  # Figure 19
+  st1_10 <- forestcover[forestcover$SoilType<11,]
+  
+  g <- ggplot(st1_10,aes(factor(SoilType), CovName,col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure19.jpg")
+```  
+
+![Tree Type vs Soil Types 1 thru 10](Figure19.jpg)
+
+The aggregated soil types used by Dr Blackard as predictors in his PhD dissertation
+are shown in the next several graphs. 
+Here we see soil types 1 through 10. It's difficult for me to draw any conclusions.
+
+\newpage
+
+### Tree Type vs Aggregated Soil Types 11 thru 20 - Figure 20
+```{r "Figure 20"}
+# Figure 20
+  st11_20 <- forestcover[forestcover$SoilType>10 & forestcover$SoilType<21,]
+
+  g <- ggplot(st11_20,aes(factor(SoilType), CovName,col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure20.jpg")
+```  
+
+![Tree Type vs Aggregated Soil Types 11 thru 20](Figure20.jpg)
+
+Continuing with aggregated soil types 11 through 20.
+
+\newpage
+
+### Tree Type vs Aggregated Soil Types 21 through 30 - Figure 21
+```{r "Figure 21"}
+# Figure 21
+  st21_30 <- forestcover[forestcover$SoilType>20 & forestcover$SoilType<31,]
+  g <- ggplot(st21_30,aes(factor(SoilType), CovName,col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure21.jpg")
+```  
+
+![Tree Type vs Aggregated Soil Types 21 through 30](Figure21.jpg)
+
+Continuing with aggregated soil types 21 through 30.
+
+\newpage
+
+### Tree Type vs Aggregated Soil Types 31 through 40 - Figure 22
+```{r "Figure 22"}
+# Figure 22
+  st31_40 <- forestcover[forestcover$SoilType>30,]
+  g <- ggplot(st31_40,aes(factor(SoilType), CovName,col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure22.jpg")
+```  
+
+![Tree Type vs Aggregated Soil Types 31 through 40](Figure22.jpg)
+
+Continuing with aggregated soil types 31 through 40.
+
+\newpage 
+
+### Tree Type vs Aggregated Soil Types 1 through 40 - Figure 23
+```{r "Figure 23"}
+# Figure 23
+  g <- ggplot(forestcover,aes(CovName,factor(SoilType), col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure23.jpg")
+```  
+
+![Tree Type vs Aggregated Soil Types 1 through 40](Figure23.jpg)
+
+Looking at aggregated soil types 1 through 40. Still nothing jumping out.
+
+\newpage
+
+### Elevation vs Aggregated Soil Type with Tree Type - Figure 24  
+```{r "Figure 24"}
+# Figure 24
+g <- ggplot(forestcover,aes(factor(SoilType),Elev, col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure24.jpg")
+```  
+
+![Elevation vs Aggregated Soil Type with Tree Type](Figure24.jpg)
+
+Seeing if Elevation vs Aggregated Soil Type gives any insights. Nothing jumping out at me.
+
+\newpage
+
+### Aggregated Soil Type vs Elevation with Tree Type - Figure 25
+```{r "Figure 25"}
+# Figure 25
+g <- ggplot(forestcover,aes(Elev,factor(SoilType), col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure25.jpg")
+```  
+
+![Aggregated Soil Type vs Elevation with Tree Type](Figure25.jpg)
+
+Same thing as Figure 24 with axes reversed.
+
+\newpage
+
+### Tree Type vs "Montane Low" Soil Family - Figure 26
+```{r "Figure 26"}
+# Figure 26
+g <- ggplot(forestcover,aes(Montane_low,CovName, col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure26.jpg")
+```  
+
+![Tree Type vs "Montane Low" Soil Family](Figure26.jpg)
+
+Trying to determine how best to look at the different Soil Families. Looking at an individual
+family is not very pretty. We really only care about the entries with Montane_low value of '1'.
+
+\newpage
+
+### Tree Type vs "Montane" Soil Family - Figure 27  
+```{r "Figure 27"}
+# Figure 27
+g <- ggplot(forestcover,aes(Montane,CovName, col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure27.jpg")
+```  
+
+![Tree Type vs "Montane" Soil Family](Figure27.jpg)
+
+Looking at 'Montane' soil family. No conclusions here.
+
+\newpage
+
+### Tree Type vs "Alpine" Climate Zone - Figure 28
+```{r "Figure 28"}
+# Figure 28
+g <- ggplot(forestcover,aes(Alpine,CovName, col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure28.jpg")
+```  
+
+![Tree Type vs "Alpine" Climate Zone](Figure28.jpg)
+
+The individual Alpine climate zone vs Tree cover. The Alpine Climate zone eliminates four of the tree types. 
+
+\newpage
+
+### Tree Type vs Climate Zone - Figure 29
+```{r "Figure 29"}
+# Figure 29
+g <- ggplot(forestcover,aes(ClimateName,CovName, col=CovName)) +
+        geom_jitter(alpha=0.1)
+  ggsave("Figure29.jpg")
+```  
+
+![Tree Type vs Climate Zone](Figure29.jpg)
+
+All of the Climate zones are graphed here. The Montane and Montane Dry (M&MDry) zone and the
+Montane Dry (MonDry) zones eliminate some tree types but the other zones are not as effective.
+
+\newpage
+
+### Elevation vs Climate with Tree Type - Figure 30
+```{r "Figure 30"}
+# Figure 30
+g <- ggplot(forestcover,aes(ClimateName,Elev, col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure30.jpg")
+```  
+
+![Elevation vs Climate with Tree Type](Figure30.jpg)
+
+It's hard to see any patterns when looking at climate and Elevation with Tree type.
+
+\newpage
+
+### Geologic Zone vs Climate with Tree Type - Figure 31
+```{r "Figure 31"}
+# Figure 31
+g <- ggplot(forestcover,aes(ClimateName,GeoName, col=CovName)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("Figure31.jpg")
+```  
+
+![Geologic Zone vs Climate with Tree Type](Figure31.jpg)
+
+Plotting Climate and Geologic zones with Tree Type brings in too much data to
+see any clear patterns but it looks like it would aid in classifying the data.
+
+\newpage
+
+### Elevation vs Wilderness Area with Tree Type - Figure 32
+```{r "Figure 32"}
+# Figure 32
+g <- ggplot(forestcover,aes(Wilderness_Area,Elev,col=CovName)) +
+        geom_jitter(alpha=0.1) # +
+      #  facet_grid(. ~ CovName) +
+  ggsave("Figure32.jpg")
+```  
+
+![Elevation vs Wilderness Area with Tree Type](Figure32.jpg)
+
+Elevation vs Wilderness area shows the wilderness area should be able to help
+classifying tree type.
+
+\newpage
+
+### Geology Count grouped Tree Type - Figure 33
+```{r "Figure 33"}
+# Figure 33
+library(tidyverse)
+col1 <- grep("^CovName$", colnames(forestcover))
+col2 <- grep("^Alluvium$", colnames(forestcover))
+col3 <- grep("^Ign_Meta$", colnames(forestcover))
+cols=c(col1,col2:col3)
+#td2 <- gather(forestcover,Property,val,cols)
+td2 <- forestcover[,cols]
+td3<-gather(td2,Geology,Type,-1)
+td4<- group_by(td3,CovName,Geology) %>%
+  summarize(tot=sum(Type))
+gr <- ggplot(td4, aes(CovName, tot, fill = Geology)) +
+    geom_bar(stat = "identity", position = "dodge")
+ggsave("Figure33.jpg")
+```  
+
+![Geology Count grouped Tree Type](Figure33.jpg)
+
+Plotting histograms of Tree Type grouped by Geologic Zone shows a similar shape between
+Geologic Zones.
+
+\newpage
+
+### Fire Point Horizontal Distance vs Tree Type - Figure 34
+```{r "Figure 34"}
+# Figure 34  
+  g <- ggplot(forestcover,aes(CovName, FirePtHD,col=CovName)) +
+        geom_jitter(alpha=0.1) # +
+      #  facet_grid(. ~ CovName) +
+  ggsave("Figure34.jpg")
+```  
+
+![Fire Point Horizontal Distance vs Tree Type](Figure34.jpg)
+
+It looks like the Fire Point distance can help aid in classifying the tree type by eliminating
+some tree types based on increasing distance.
+
+\newpage 
+
+### 9AM Shade vs Tree Type - Figure 35
+```{r "Figure 35"}
+# Figure 35
+  g <- ggplot(forestcover,aes(CovName, Shade9AM,col=CovName)) +
+        geom_jitter(alpha=0.1) # +
+      #  facet_grid(. ~ CovName) +
+  ggsave("Figure35.jpg")
+```  
+
+![9AM Shade vs Tree Type](Figure35.jpg)
+
+The Shade9AM value can be used to eliminate some trees based on low shade value.
+
+\newpage
+
+### 12PM Shade vs Tree Type  - Figure 36
+```{r "Figure 36"}
+# Figure 36
+  g <- ggplot(forestcover,aes(CovName, Shade12PM,col=CovName)) +
+        geom_jitter(alpha=0.1) # +
+      #  facet_grid(. ~ CovName) +
+  ggsave("Figure36.jpg")
+```  
+
+![12PM Shade vs Tree Type](Figure36.jpg)
+
+It looks like Shade12PM value can be used to help classify trees similar to Shade9AM but not
+as effective.
+
+\pagebreak
+
+### 3PM Shade vs Tree Type - Figure 37
+```{r "Figure 37"}
+# Figure 37
+  g <- ggplot(forestcover,aes(CovName, Shade3PM,col=CovName)) +
+        geom_jitter(alpha=0.1) # +
+      #  facet_grid(. ~ CovName) +
+  ggsave("Figure37.jpg")
+```  
+
+![3PM Shade vs Tree Type](Figure37.jpg)
+
+The Shade3PM data does not look like it will help much to help classify
+tree type.
+
+\newpage
+
+```{r "Finish"}
+  endTime=Sys.time()
+  print(paste("Figures completed at",endTime))
+  print(paste("Elapsed time=",round(endTime-startTime),"seconds."))
+
+progEnd=Sys.time()
+print(paste("R script  started  at",progStart))
+print(paste("R script completed at",progEnd))
+#print(paste("Elapsed time=",progEnd-progStart,"seconds."))
+```
+This concludes the current data exploration on my capstone data.
