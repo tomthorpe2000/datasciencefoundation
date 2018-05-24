@@ -1,0 +1,232 @@
+---
+title: "Experimental Project for Testing and Practice"
+author: "Tom Thorpe"
+date: "April 17, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objective
+
+View different plots of the cleaned Forest Cover data from the previous section to 
+learn more about the data.
+
+Include required libraries.
+```{r}
+progStart=Sys.time()
+print(paste("R script started at",progStart))
+
+library(dplyr)
+library(ggplot2)
+```
+
+Point to data. The forestcover_clean_full.csv is the cleaned data to be graphed. 
+
+```{r}
+
+infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full2.csv"
+infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full_sample2.csv"
+out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_graph.csv"
+#out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean_full.csv"
+#out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean.csv"
+
+alphaVal<-0.01 # large data
+alphaVal<-0.1  # small data
+```
+
+Load the data.
+```{r "Load Data"}
+startTime=Sys.time()
+print(paste("Data load started at",startTime))
+forestcover <- read.csv(infile,header=TRUE,sep=",") %>% tbl_df()
+
+# Shorten some names
+forestcover$ClimateName <- as.character(forestcover$ClimateName)
+forestcover$ClimateName[forestcover$ClimateZone == 1] <- "MonLowDry" # was "Mont_LowDry"
+forestcover$ClimateName[forestcover$ClimateZone == 2] <- "MonLow" # was "Montane_Low"
+forestcover$ClimateName[forestcover$ClimateZone == 3] <- "MonDry" # was "Montane_Dry"
+forestcover$ClimateName[forestcover$ClimateZone == 4] <- "Montane" # was "Montane"
+forestcover$ClimateName[forestcover$ClimateZone == 5] <- "M&MDry" # was "Mon&Mon_Dry"
+forestcover$ClimateName[forestcover$ClimateZone == 6] <- "MonSubAlp" # was "Mon_SubAlp"
+forestcover$ClimateName[forestcover$ClimateZone == 7] <- "SubAlpine" # was "SubAlpine"
+forestcover$ClimateName[forestcover$ClimateZone == 8] <- "Alpine" # was "Alpine"  
+forestcover$ClimateName <- as.factor(forestcover$ClimateName)
+
+endTime=Sys.time()
+  print(paste("Data load completed at",endTime))
+  print(paste("Elapsed time=",endTime-startTime,"seconds."))
+```
+## Data Overview
+The forest cover data has a row for each sample representing a 30 meter by 30 meter square area
+of land. 
+```{r}
+#glimpse(forestcover)
+```
+
+## List Data Ranges for Non-Binary Data
+List Data Ranges for Non-Binary Data.
+```{r}
+myranges <- function(name,x) { c(name, min = min(x), mean = mean(x), max = max(x)) }
+
+forestDataRanges <- data.frame("Data"=character(), "min"=double(), "mean"=double(), "max"=double(),
+                               stringsAsFactors=FALSE)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Elev",forestcover$Elev)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Aspect",forestcover$Aspect)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Slope",forestcover$Slope)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("H2OHD",forestcover$H2OHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("H2OVD",forestcover$H2OVD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("RoadHD",forestcover$RoadHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("FirePtHD",forestcover$FirePtHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade9AM",forestcover$Shade9AM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade12P",forestcover$Shade12PM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade3PM",forestcover$Shade3PM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("RWwild",forestcover$RWwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("NEwild",forestcover$NEwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("CMwild",forestcover$CMwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("CPwild",forestcover$CPwild)
+forestDataRanges
+
+```
+
+\pagebreak
+
+## Data distributions 
+Now check some basic distributions.
+
+### Elevation - Figure 1
+```{r "Figure 1"}
+# plot 1
+  jpeg(filename="ExpFigure01.jpg")
+  plot(table(forestcover$Elev))
+  dev.off()
+```  
+
+![Elevation Histogram 1](ExpFigure01.jpg)
+
+The distribution of the elevation seems reasonable for Colorado's high country.  
+
+### Elevation Histogram 2 - Figure 2
+```{r "Figure 2"}
+# Figure 32
+  g <- ggplot(forestcover,aes(Elev)) +
+        geom_histogram(bins=100) # +
+       # facet_grid(. ~ factor(CovName)) +
+  ggsave("ExpFigure02.jpg")
+```  
+
+![Elevation Histogram 2](ExpFigure02.jpg)
+
+# shapiro.test(forestcover$Elev) # Does myVec follow a normal distribution?
+# Error Message: "Sample size must be between 3 and 5000"
+
+\newpage
+
+### Aspect - Figure 3
+```{r "Figure 3"}
+# plot 1
+  jpeg(filename="ExpFigure03.jpg")
+  plot(table(forestcover$Aspect))
+  dev.off()
+```  
+
+![Aspect Histogram 1](ExpFigure03.jpg)
+
+The distribution of the Aspect follows the full 360 degrees of the compass.
+
+### Aspect Histogram 2 - Figure 2
+```{r "Figure 4"}
+# Figure 32
+  g <- ggplot(forestcover,aes(Aspect)) +
+        geom_histogram(bins=200) # +
+       # facet_grid(. ~ factor(CovName)) +
+  ggsave("ExpFigure04.jpg")
+```  
+
+![Aspect Histogram 2](ExpFigure04.jpg)
+
+
+\newpage
+
+### Slope - Figure 5
+```{r "Figure 5"}
+# plot 1
+  jpeg(filename="ExpFigure05.jpg")
+  plot(table(forestcover$Slope))
+  dev.off()
+```  
+
+![Slope Histogram 1](ExpFigure05.jpg)
+
+The distribution of the slope seems reasonable.  
+
+### Slope Histogram 2 - Figure 6
+```{r "Figure 6"}
+# Figure 32
+  g <- ggplot(forestcover,aes(Slope)) +
+        geom_histogram(bins=60) # +
+       # facet_grid(. ~ factor(CovName)) +
+  ggsave("ExpFigure06.jpg")
+```  
+
+![Slope Histogram 2](ExpFigure06.jpg)
+
+
+\newpage
+
+### Tree Type vs Elevation - Plot 11
+
+```{r "Plot 11"}
+# plot 11
+  g <- ggplot(forestcover,aes(Elev, CovName,col=CovType)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("plot11.jpg")
+
+```  
+
+![Plot 11](plot11.jpg)
+
+
+Elevation vs Tree Type shows that trees reside in a range of elevations and
+will help in determining tree type, but more information will be needed where 
+there is overlap in elevation. 
+
+This graph looks a little strange. The next graph reverses the axes.
+
+\pagebreak
+
+### 13
+```{r "Plot 13"}
+# plot 13
+  g <- ggplot(forestcover,aes(Elev, CovName,col=CovType)) +
+        geom_jitter(alpha=alphaVal)
+  ggsave("plot13.jpg")
+
+```  
+
+![Plot 13](plot13.jpg)
+
+blah blah blah blah
+
+\newpage
+
+### Elevation vs Wilderness Area with Tree Type - Figure 32
+```{r "Figure 32"}
+# Figure 32
+  g <- ggplot(forestcover,aes(Wilderness_Area,Elev,col=CovName)) +
+        geom_jitter(alpha=0.1) # +
+       # facet_grid(. ~ factor(CovName)) +
+  ggsave("Figure32.jpg")
+```  
+
+![Elevation vs Wilderness Area with Tree Type](Figure32.jpg)
+
+Elevation vs Wilderness area shows the wilderness area should be able to help
+classifying tree type.
+
+\newpage
+
