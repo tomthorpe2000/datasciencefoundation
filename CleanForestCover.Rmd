@@ -34,9 +34,9 @@ unneeded columns removed.
 cleanMethod <- 2
 infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover.csv"
 #infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestsmall.csv"
-transformfile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/AlternateCoding02.csv"
-out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full.csv"
-out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean.csv"
+transformfile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/AlternateCoding03.csv"
+out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full2.csv"
+out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean2.csv"
 #out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean_full.csv"
 #out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean.csv"
 ```
@@ -212,8 +212,19 @@ system.time({
     forestcover <- mutate(forestcover,Wildsum=rowSums(forestcover[,Wildcols]))
     myranges("wildsum",forestcover$Wildsum)
     
+    forestcover <- mutate(forestcover,Wilderness_Area = "")
+    forestcover$Wilderness_Area[forestcover$RWwild == 1] <- "Rawah"
+    forestcover$Wilderness_Area[forestcover$NEwild == 1] <- "Neota"
+    forestcover$Wilderness_Area[forestcover$CMwild == 1] <- "Comanche"
+    forestcover$Wilderness_Area[forestcover$CPwild == 1] <- "Cache"
+    #forestcover$Wilderness_Area <- as.factor(forestcover$Wilderness_Area)
+    
     # print the row numbers where the STsum is not 1
     which(forestcover$Wildsum!=1)
+    
+forestcover <- mutate(forestcover,ClimateName = "")
+forestcover <- mutate(forestcover,GeoName = "")
+forestcover <- mutate(forestcover,CovName = "")
   })
 ```
 The data is clean. There are no rows where the Wilderness columns do not have exactly
@@ -457,16 +468,19 @@ if (cleanMethod == 2) {
   reportCnt<-0
   # go through every row/soil type in the xform data frame to determine which columns
   # in the forest coverage data frame must be set.
+  print(paste("climate[1]=",xform[1,"ClimateZone"] ))
   for(ndx in 1:nrow(xform)) {
     # if a property is set for the current soiltype (the ndx variable),
     #                                    set the same property in forest cover for that soil type
+    forestcover$ClimateZone[forestcover$SoilType == ndx] <- xform$ClimateZone[ndx] 
+    forestcover$GeoZone[forestcover$SoilType == ndx] <- xform$GeoZone[ndx] 
     if (xform[ndx,"Montane_low"] == 1) { forestcover$Montane_low[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Montane"] == 1) { forestcover$Montane[forestcover$SoilType == ndx] <- 1 }
-    if (xform[ndx,"Subalpine"] == 1) { forestcover$Subalpine[forestcover$SoilType == ndx] <- 1 }
+    if (xform[ndx,"SubAlpine"] == 1) { forestcover$SubAlpine[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Alpine"] == 1) { forestcover$Alpine[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Dry"] == 1) { forestcover$Dry[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Non_Dry"] == 1) { forestcover$Non_Dry[forestcover$SoilType == ndx] <- 1 }
-    if (xform[ndx,"Alluviam"] == 1) { forestcover$Alluviam[forestcover$SoilType == ndx] <- 1 }
+    if (xform[ndx,"Alluvium"] == 1) { forestcover$Alluvium[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Glacial"] == 1) { forestcover$Glacial[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Sed_mix"] == 1) { forestcover$Sed_mix[forestcover$SoilType == ndx] <- 1 }
     if (xform[ndx,"Ign_Meta"] == 1) { forestcover$Ign_Meta[forestcover$SoilType == ndx] <- 1 }
@@ -534,6 +548,8 @@ is made here to remember to update this section as needed.
 Create the column names.
 ```{r "Populate Tree Names"}
 system.time({
+
+
 forestcover <- mutate(forestcover,Spruce_Fir=0)
 forestcover <- mutate(forestcover,LodgepolePine=0)
 forestcover <- mutate(forestcover,PonderosaPine=0)
@@ -553,7 +569,7 @@ forestcover$Cottonwood_Willow[forestcover$CovType == 4] <- 1
 forestcover$Aspen[forestcover$CovType == 5] <- 1
 forestcover$DouglasFir[forestcover$CovType == 6] <- 1
 forestcover$Krummholz[forestcover$CovType == 7] <- 1
-glimpse(forestcover)
+
 table(forestcover$CovType)
 table(forestcover$Spruce_Fir)
 table(forestcover$LodgepolePine)
@@ -562,6 +578,37 @@ table(forestcover$Cottonwood_Willow)
 table(forestcover$Aspen)
 table(forestcover$DouglasFir)
 table(forestcover$Krummholz)
+
+# Set Descriptive Name of Climate Zone
+forestcover$ClimateName[forestcover$ClimateZone == 1] <- "Mont_LowDry"
+forestcover$ClimateName[forestcover$ClimateZone == 2] <- "Montane_Low"
+forestcover$ClimateName[forestcover$ClimateZone == 3] <- "Montane_Dry"
+forestcover$ClimateName[forestcover$ClimateZone == 4] <- "Montane"
+forestcover$ClimateName[forestcover$ClimateZone == 5] <- "Mon&Mon_Dry"
+forestcover$ClimateName[forestcover$ClimateZone == 6] <- "Mon_SubAlp"
+forestcover$ClimateName[forestcover$ClimateZone == 7] <- "SubAlpine"
+forestcover$ClimateName[forestcover$ClimateZone == 8] <- "Alpine"  
+
+# Set descriptive name of Geologic Zone
+forestcover$GeoName[forestcover$GeoZone == 1] <- "Alluvium"
+forestcover$GeoName[forestcover$GeoZone == 2] <- "Glacial"
+forestcover$GeoName[forestcover$GeoZone == 3] <- "Shale"
+forestcover$GeoName[forestcover$GeoZone == 4] <- "Sandstone"
+forestcover$GeoName[forestcover$GeoZone == 5] <- "Mix_Sed"
+forestcover$GeoName[forestcover$GeoZone == 6] <- "Unspecified"
+forestcover$GeoName[forestcover$GeoZone == 7] <- "Ign_Meta"
+forestcover$GeoName[forestcover$GeoZone == 8] <- "Volcanic"
+  
+# Set descriptive Name of Tree Type
+forestcover$CovName[forestcover$CovType == 1] <- "Spruce&Fir"
+forestcover$CovName[forestcover$CovType == 2] <- "Lodgepole"
+forestcover$CovName[forestcover$CovType == 3] <- "Ponderosa"
+forestcover$CovName[forestcover$CovType == 4] <- "Cotton&Willow"
+forestcover$CovName[forestcover$CovType == 5] <- "Aspen"
+forestcover$CovName[forestcover$CovType == 6] <- "DouglasFir"
+forestcover$CovName[forestcover$CovType == 7] <- "Krummholz"
+
+glimpse(forestcover)
 })
 ```
 
