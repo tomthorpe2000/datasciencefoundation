@@ -1,0 +1,432 @@
+---
+title: "Capstone Data Exploration and Statistics"
+author: "Tom Thorpe"
+date: "June 12, 2018"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE)
+```
+
+## Objective
+
+View different plots of the cleaned Forest Cover data set and run some statistics to 
+learn more about the data.
+
+
+```{r}
+# Include required libraries.
+
+library(dplyr)
+library(ggplot2)
+library(ggridges) # for easier viewing of sub-group distributions
+library(latticeExtra)
+
+#Point to data. The forestcover_clean_full.csv is the cleaned data to be graphed. 
+
+infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean_full.csv"
+#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_clean.csv"
+#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean_full.csv"
+#infile="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean.csv"
+out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcover_graph.csv"
+#out1file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean_full.csv"
+#out2file="C:/Users/Tom/git/datasciencefoundation/ForestCoverage/forestcoversmall_clean.csv"
+
+alphaVal<-0.05 # large data
+#alphaVal<-0.1  # small data
+```
+
+
+```{r "Load Data"}
+
+forestcover <- read.csv(infile,header=TRUE,sep=",") %>% tbl_df()
+
+```
+
+## Data Overview
+The forest cover data has a row for each sample representing a 30 meter by 30 meter square area
+of land. Each cell sample is described by elevation, slope and direction the cell faces,
+distance to water, roads, and fire and binary columns for wilderness area and soil type.
+One of 4 possible wilderness areas and one of 40 possible aggregated soil types are
+set in each row. The predicted variable is the coverage type indicating 1 of 7 possible
+trees found in the cell sample.
+
+As part of data cleaning, the aggregated soil type was split into it's individual components
+of one possible climate zone, one possible geologic zone, one or more soil families and 
+one or more "rocky-ness" categories. I hope to learn if breaking out the aggregated
+soil type into its components will improve the effectiveness of predicting the coverage type.
+
+The data is described in detail here: 
+<https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/covtype.info>.
+The data names have been abbreviated but can be related to the data descriptions easily.
+
+```{r "Create Alt Forest Data Frame"}
+#glimpse(forestcover)
+
+# An Alternate Forest Cover data frame is created for Shapiro statistics testing for whether data follows
+# a normal distribution. The Shapiro test has a maximum of 5000 data points. The Forestcover data frame 
+# is sampled to ensure the maximum is not exceeded.
+
+if(nrow(forestcover)> 5000) {
+  samplefactor <- as.integer(nrow(forestcover)/4500)
+  if (samplefactor < 2) { samplefactor <- 2 }
+  altforestcover<-forestcover[seq(1, nrow(forestcover), samplefactor), ]
+} else {
+  altforestcover<-forestcover
+}
+```
+## List Selected Data Ranges
+Data ranges are listed to help validate the data is within expected limits.
+```{r}
+myranges <- function(name,x) { c(name, min = min(x), mean = mean(x), median=median(x), max = max(x),
+                                 nonzero=sum(x!=0)) }
+
+forestDataRanges <- data.frame("Data"=character(), "min"=double(), "mean"=double(),
+                               "median"=double(), "max"=double(), "nonzero"=integer(),
+                               stringsAsFactors=FALSE)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Elev",forestcover$Elev)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Elev",forestcover$ElevSlot)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Aspect",forestcover$Aspect)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Slope",forestcover$Slope)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("H2OHD",forestcover$H2OHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("H2OVD",forestcover$H2OVD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("RoadHD",forestcover$RoadHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("FirePtHD",forestcover$FirePtHD)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade9AM",forestcover$Shade9AM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade12P",forestcover$Shade12PM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("Shade3PM",forestcover$Shade3PM)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("RWwild",forestcover$RWwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("NEwild",forestcover$NEwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("CMwild",forestcover$CMwild)
+forestDataRanges[nrow(forestDataRanges)+1,] <- myranges("CPwild",forestcover$CPwild)
+forestDataRanges
+
+```
+
+The results show all the data values have reasonable values and there is no missing data. 
+The elevation ranges from 1859 meters (6099 feet) to 3858 meters (12657 feet). These are valid ranges for elevation in the Colorado wilderness 
+areas being sampled, but the rule of thumb for timberline (the maximum elevation for where trees
+are found) is 11500 feet. It might be interesting to see how accurate predictions are if
+samples above 11800 feet are removed.
+
+ElevSlot, "Elevation Slot" is a new column that creates bins for elevation data for use with Chi-square testing. It is calculated by diving the elevation by 100 and truncating the value by saving as an integer. This results in 21 elevation bins.
+
+The Aspect which is the compass heading that the terrain faces, ranges from 0 to 360 degrees and is a valid data range. The Slope is the steepness of the terrain with 0 degrees being flat and 90 degrees being vertical. The maximum Slope was found to be 66 degrees which seems logical since trees are not
+usually seen on near-vertical cliffs. (It's a different story in New Zealand!)
+
+The horizontal distance to the nearest water features, range from 0 to 1397 meters which seems reasonable. The vertical distance to nearest water features, range from -173 to 601 meters which seems reasonable and
+can be negative since the nearest water may be below the forest cover data sample.
+
+The horizontal distance to the nearest road ranges from 0 to 7117 meters which is reasonable.
+The horizontal distance to the nearest fire features range from 0 to 7173 meters which is reasonable.
+The amount of shade present in a cell sample at 9AM, 12PM and 3PM ranges from 0 (full sun) to 254
+(fully shaded). 
+
+A table showing the number of occurrences for each tree type is shown below.
+```{r}
+
+covCount<-data.frame(table(forestcover$CovName))
+totCount<-nrow(forestcover)
+covCount <- mutate(covCount,Percent = as.integer(covCount$Freq*1000/totCount)/10)
+LodgePct<-covCount$Percent[covCount$Var1=="Lodgepole"]
+SpruceFirPct<-covCount$Percent[covCount$Var1=="Spruce&Fir"]
+LodgeAndSpruceFir<-LodgePct+SpruceFirPct
+#```
+#```{r echo=TRUE}
+covCount
+```
+
+Lodge pole Pine represents `r LodgePct` percent of the sample.
+So always guessing "Lodge pole" would provide success rate of `r LodgePct` percent
+and can be used as a baseline for comparing our predictions. Spruce and Fir represent the next 
+largest number of trees. The two together represent `r LodgeAndSpruceFir` percent.
+
+### Elevation Histogram
+
+```{r "Figure 4"}
+  g <- ggplot(forestcover,aes(Elev)) +
+       geom_histogram(bins=40) +
+       labs(title = 'Elevation Histogram',
+             # subtitle = 'All Data',
+              x="Elevation Bins (meters)", y="Count") 
+         # theme(axis.text.x = element_text(angle=-90))
+  x<-ggsave("Fig-Elev-Histogram.jpg")
+```  
+
+![Elevation Histogram](Fig-Elev-Histogram.jpg)
+
+A good histogram for elevation is generated Using 40 bins. There are two humps in the histogram and there may be a more complicated distribution. The elevation may be related to other variables. Next the elevation is grouped by coverage type and wilderness to see how elevation relates to coverage type.
+
+### Elevation Density
+```{r "Figure 7",echo=FALSE}
+
+  g <- ggplot(forestcover,aes(Elev, CovName)) +
+       geom_density_ridges(scale = 3, rel_min_height = 0.01) +
+       scale_x_continuous(expand = c(0.01, 0)) +
+       scale_y_discrete(expand = c(0.01, 0)) +
+       labs(title = 'Elevation Relative Density',
+       #subtitle = 'by Coverage Type', 
+              x="Elevation (meters)") + # , y="Coverage Type") +
+       theme_ridges(font_size = 13, grid = T) + theme(axis.title.y = element_blank())
+      
+  x<-ggsave("Fig-Elev-Density-CovType-Offset.jpg")
+```  
+
+![Elevation Density by Coverage Type](Fig-Elev-Density-CovType-Offset.jpg)
+
+The density ridges geom gives a good feel for the ranges of elevation for each coverage type.
+It looks like the elevation is a significant factor in helping determine coverage type.
+
+### Coverage vs Climate Frequency 
+
+```{r "Figure 28"}
+workdata<-data.frame(table(forestcover$ClimateName,forestcover$CovName))
+workcols<-colnames(workdata)
+workcols[1]<-"Climate"
+workcols[2]<-"Coverage"
+workcols[3]<-"Frequency"
+colnames(workdata)<-workcols
+
+jpeg(filename="Fig-Cover-Vs-Climate-Freq-3D.jpg")
+cloud(Frequency~Coverage+Climate, workdata, panel.3d.cloud=panel.3dbars, col.facet='grey', 
+      xbase=0.5, ybase=0.5, scales=list(arrows=FALSE, col=1), 
+      main="Coverage vs Climate Frequency Chart",
+      par.settings = list(axis.line = list(col = "transparent")))
+dev.off()
+```
+
+![Coverage vs Climate Frequency](Fig-Cover-Vs-Climate-Freq-3D.jpg)
+
+This gives a good view of the potential challenge to determine the various coverage types.
+The Lodge pole and Spruce & Fir trees make up the largest portion of the tree types.
+Determining the other tree types looks like they are in the "noise" of the data
+and might be more difficult to determine.
+
+### Geologic Zone vs Climate with Tree Type
+
+```{r "Figure 35"}
+
+  g <- ggplot(forestcover,aes(ClimateName,GeoName, col=CovName)) +
+        geom_jitter(alpha=alphaVal) +
+        labs(title="Geologic Zone vs Climate by Tree Type",
+            x = "Climate Zone",
+            y = "Geologic Zone") +
+       theme(axis.text.x = element_text(angle=-90))
+  x<-ggsave("Fig-Geo-vs-Climate-by-TreeType.jpg")
+```  
+
+![Geologic Zone vs Climate with Tree Type](Fig-Geo-vs-Climate-by-TreeType.jpg)
+
+Looking at the coverage type vs Climate and Geologic zones shows the two combinations
+may be helpful in determine coverage type but it is difficult to determine from this graph.
+The jitter geom was used to try to show the density, but the color coding
+is not distinct enough to get a feeling of the relative density of the tree coverage.
+
+
+### Aspect Relative Density vs Tree Type
+
+```{r "Figure 25"}
+
+  g <- ggplot(forestcover,aes(Aspect, CovName)) +
+       geom_density_ridges(scale = 3, rel_min_height = 0.01) +
+       scale_x_continuous(expand = c(0.01, 0)) +
+       scale_y_discrete(expand = c(0.01, 0)) +
+       labs(title = 'Aspect Relative Density by Coverage Type', 
+            x="Aspect (degrees)"
+            # , y="Coverage Type"
+       ) +
+       theme_ridges(font_size = 13, grid = T) + theme(axis.title.y = element_blank())
+      
+  x<-ggsave("Fig-Aspect-Density-CovType-Offset.jpg")
+```  
+
+![Aspect Density by Coverage Type](Fig-Aspect-Density-CovType-Offset.jpg)
+
+Many other data were examined but did not suggest as clear a relationship to coverage type as 
+the previous graphs.
+For example, the aspect of the slope (direction the slope of the cell faces) 
+looks similar for each tree type.
+There are concentrations of tree types near aspects of 100 and 360 degrees.
+This occurs for all tree types and shows that the aspect will probably not be a significant factor
+in determining coverage type.
+
+
+## Statistics Analysis
+
+After looking at some of the data relationships graphically, some statistical tests are applied to
+the data to test if variables follow a normal distribution or are independent.
+
+### Shaprio Test - Elevation
+
+The Elevation histogram looks like it possibly has a normal distribution. It is not perfect
+but might be close enough statistically. 
+
+The Shapiro test is used to determine if data is normally distributed. 
+The maximum number of data points for this Shaprio test is 5000. A sample of the forest cover
+data set was extracted for the Shapiro test.
+The Shapiro test result is shown below.
+
+```{r "Shapiro Elev",echo=TRUE}
+shapiro.test(altforestcover$Elev)
+
+```
+The null hypothesis for the Shapiro test is that the data follows a normal distribution. 
+If the P-value is less than the 0.05 significance level, the null hypothesis is rejected
+and the data is not considered to be normally distributed otherwise the data is normally
+distributed.
+
+The P-value for elevation data is 2e-16 which is nearly zero and much less than 0.05, therefore the
+null hypothesis is rejected and the data is not normally distributed. 
+The previous histogram shows this visually: The graph has a long left tail and
+a short right tail.
+
+### Chi Square Test - Elevation & Coverage Name
+
+It looks like elevation can be used to help identify coverage type. A chi-square test will be
+used to see if the coverage type and elevation variables are independent.
+
+```{r chisq}
+
+# To help with analysis, a function to calculate expected values for a contingency table 
+# is created as shown next.
+
+# Create a table of expected values from a contigency table
+expValues <- function(dFrame,debug) { 
+  wFrame<-dFrame             # create a new data frame with the same dimensions as passed in
+  cstcsums<-colSums(wFrame)  # get a total count for each row
+  cstrsums<-rowSums(wFrame)  # get a total count for each column
+  csumTot<-sum(cstcsums)     # get a total count of all data points
+  
+  if (debug) {               # display the column and row counts if requested
+    print(paste("colsums=",cstcsums))
+    print(paste("rowsums=",cstrsums))
+    print(paste("Total Count",csumTot))
+  }
+  
+  # calculate the expected value for each cell
+  minErr<-0                             # keep track of any errors (min expected value is 5 for chi-sqr)
+  for(i in 1:nrow(wFrame)) {
+    for(j in 1:ncol(wFrame)) {
+      expval<-as.integer(cstrsums[i]*10*cstcsums[j]/csumTot)/10  # truncate expected value to 0.1
+      if(expval<5) {
+        if(debug) {
+          print(paste("Warn: Cell[",i,",",j,"]=",expval," is less than 5!"))
+        }
+        minErr<-minErr+1
+      }
+      wFrame[i,j]<-expval     # save the expected value in the table
+    }
+  }
+  if (minErr > 0) {
+    print(paste("WARNING! There were",minErr,"cells with expected values less than 5."))
+  }
+  wFrame  # return the table
+}
+```
+
+
+```{r}
+
+#Now, create a contigency table for Coverage Type vs Elevation Bin, print the table and check 
+#that the sum of the counts add up to the number of rows in the forest coverage data.
+
+
+#chisqtbl<-table(forestcover$CovName, forestcover$ElevSlot)
+#chisqtbl
+#sum(colSums(chisqtbl))
+#Create an expected values table. We want to ensure that the minimum expected value
+#for each cell is at least 5, otherwise the chi-square test is not valid.
+
+#expVals<-expValues(chisqtbl,1)
+#expVals
+#sum(colSums(expVals))
+cst <- chisq.test(table(forestcover$CovName, forestcover$ElevSlot), correct = FALSE)
+cst
+
+```  
+
+If the P-value is less than significance factor of 0.05, the null hypothesis is rejected and the 
+variables are not independent. The P-value is 2e-16 which is nearly zero. This shows that the
+coverage type and elevation are dependent, if the chi-square test is valid.
+
+### Coverage Type vs Soil Type Independence check
+
+The original paper used the Soil Type categories to predict coverage type. Let's try 
+a chi-square test on them. 
+
+```{r "Chi-square Soil Type"}
+#chisqtbl<-table(forestcover$CovName, forestcover$SoilType)
+#chisqtbl
+#sum(colSums(chisqtbl))
+
+#Next an expected value table is created to verify that all expected values are at least 5.
+
+#expVals<-expValues(chisqtbl,1)
+#expVals
+#sum(colSums(expVals))
+
+#Here we see there are several cells with expected values less than 5. The chi-square test may not be
+#valid and the chi-square test itself (below) says the test may not be valid. Although we don't know if
+#expected counts less than 5 is the reason for the message.
+
+```
+
+
+```{r}
+cst <- chisq.test(table(forestcover$CovName, forestcover$SoilType), correct = FALSE)
+cst
+
+```  
+
+If the P-value is less than significance factor of 0.05, the null hypothesis is rejected and the 
+variables are not independent. The P-value is 2e-16 which is nearly zero. This shows that the
+coverage type and soil type are dependent, if the chi-square test is valid.
+
+### Chi Square Test - Climate & Coverage Name Independence Test
+
+The climate vs coverage type frequency graphs looked like there was a relationship between the two.
+A chi-square test on climate and coverage name is shown below.
+
+```{r "Chi-square Climate"}
+#chisqtbl<-table(forestcover$CovName, forestcover$ClimateName)
+#chisqtbl
+#sum(colSums(chisqtbl))
+
+#Next an expected value table is created to verify that all expected values are at least 5.
+
+#expVals<-expValues(chisqtbl,1)
+#expVals
+#sum(colSums(expVals))
+
+
+#Here we see there are several cells with expected values less than 5. The chi-square test may not be 
+#valid and the chi-square test itself (below) says the test may not be valid. Although we don't know if 
+#expected counts less than 5 is the reason for the message.
+
+cst <- chisq.test(table(forestcover$CovName, forestcover$ClimateName), correct = FALSE)
+cst
+
+```  
+
+If the P-value is less than significance factor of 0.05, the null hypothesis is rejected and the 
+variables are not independent. The P-value is 2e-16 which is nearly zero. This shows that the
+climate zone and coverage type are dependent, if the chi-square test is valid.
+
+
+## Conclusion
+
+There are many interesting data distributions in the continuous data. The elevation data seems to be
+the most easy to intuitively see a relationship predicting the outcome of the coverage type.
+
+The other categorical data seems difficult to relate to outcome intuitively. 
+
+Statistically, chi-square testing indicates that both elevation and soil type are 
+related to the coverage type. 
+
+It will be interesting to see how the machine learning algorithms find relationships with
+the different data and if splitting out the soil type into individual components
+improves the accuracy of the predicted tree type.
